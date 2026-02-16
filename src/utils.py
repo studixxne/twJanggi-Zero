@@ -19,10 +19,28 @@ class Piece(IntEnum):
     HU = 4
     KING = 5
 
-def next_location(row, col, direction):
+POSSIBLE_MOVE_DIRECTION = {
+    Piece.JA: [0],
+    Piece.SANG: [1, 3, 5, 7],
+    Piece.JANG: [0, 2, 4, 6],
+    Piece.HU: [0, 1, 2, 4, 6, 7],
+    Piece.KING: [0, 1, 2, 3, 4, 5, 6, 7]
+}
+
+def next_location(row, col, direction, player):
     d_row, d_col = MOVE_DIRECTION[direction]
-    next_row, next_col = row+d_row, col+d_col
+    next_row, next_col = row + d_row*player, col + d_col*player
     return next_row, next_col
+
+def get_possible_piece_moves(piece_type, row, col, player):
+    possible_direction = POSSIBLE_MOVE_DIRECTION[piece_type]
+    possible_piece_moves = []
+
+    for dir in possible_direction:
+        next_row, next_col = next_location(row, col, dir, player)
+        possible_piece_moves.append((row, col, next_row, next_col))
+
+    return possible_piece_moves
 
 def action_to_move(action):
     # 보드판 위에 있는 말을 이동시키는 Action
