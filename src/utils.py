@@ -47,8 +47,9 @@ def action_to_move(action):
     if action < 96:
         pos, direction = divmod(action, 8)
         row, col = divmod(pos, 3)
+        d_row, d_col = MOVE_DIRECTION[direction]
 
-        next_row, next_col = next_location(row, col, direction)
+        next_row, next_col = row+d_row, col+d_col
         return (row, col, next_row, next_col)
 
     # 포로 말을 배치하는 Action
