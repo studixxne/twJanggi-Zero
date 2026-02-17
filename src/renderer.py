@@ -1,5 +1,8 @@
 import pygame
+import random
 from utils import Piece
+from env import TwJanggiEnv
+
 
 class GameRenderer:
     def __init__(self):
@@ -24,6 +27,8 @@ class GameRenderer:
         self.BLACK_COLOR = (33, 33, 33, 97)
         self.WINDOW_COLOR = (74, 74, 74, 180)
 
+        self.TEAM_COLOR = {1: (204, 61, 61), -1: (65, 175, 57)}
+
         # 초기화
         pygame.init()
         pygame.mixer.init()
@@ -36,6 +41,49 @@ class GameRenderer:
         self._load_fonts()
         self._load_sounds()
         self._create_etc()
+
+    def render(self, env):
+        self.screen.fill(self.BLACK_COLOR)
+        self._draw_board()
+    
+    def _draw_board(self):
+        # 보드판 표시
+        self.screen.blit(self.board_images['board'], (self.BOARD_X, self.BOARD_Y))
+
+        # 진영 색 표시
+        self.screen.blit(self.red_team_surface, (self.BOARD_X, self.BOARD_Y + self.BOARD_HEIGHT - self.CELL_SIZE))
+        self.screen.blit(self.green_team_surface, (self.BOARD_X, self.BOARD_Y))
+
+        # 격자 표시
+        for row in range(5):
+            pygame.draw.line(self.screen, self.BLACK, (self.BOARD_X, self.BOARD_Y + row * self.CELL_SIZE),
+                             (self.BOARD_X + self.COLS * self.CELL_SIZE, self.BOARD_Y + row * self.CELL_SIZE),
+                             3 if row == 0 or row == 4 else 2)
+
+        for col in range(4):
+            pygame.draw.line(self.screen, self.BLACK, (self.BOARD_X + col * self.CELL_SIZE, self.BOARD_Y),
+                             (self.BOARD_X + col * self.CELL_SIZE, self.BOARD_Y + self.ROWS * self.CELL_SIZE),
+                             3 if col == 0 or col == 3 else 2)
+
+        # 잡힌 기물 보드판 표시
+        self.screen.blit(self.board_images['red'], self.red_taken_board_rect)
+        self.screen.blit(self.board_images['green'], self.green_taken_board_rect)
+        pygame.draw.rect(self.screen, self.TEAM_COLOR[1], self.red_taken_board_rect, 3)
+        pygame.draw.rect(self.screen, self.TEAM_COLOR[-1], self.green_taken_board_rect, 3)
+
+        # 보드판 좌표 표시
+        for row in range(4):
+            self.surface.blit(self.row_coord_surface[row], (self.BOARD_X - 20, self.BOARD_Y + row * self.CELL_SIZE + 70))
+
+        for col in range(3):
+            self.surface.blit(self.col_coord_surface[col], (self.BOARD_X + col * self.CELL_SIZE + 70, self.BOARD_Y + self.BOARD_HEIGHT + 7))
+
+
+    def _draw_select_piece(self):
+        pass
+
+    def play_move_sound(self):
+        self.sounds[random.randint(0, 3)].play()
 
     def _load_images(self):
         try:
@@ -89,7 +137,6 @@ class GameRenderer:
         try:
             self.ui_font = pygame.font.Font('/assets/fonts/font.ttf', 24)
             self.ui_sub_font = pygame.font.Font('/assets/fonts/font.ttf', 15)
-            self.ui_history_font = pygame.font.Font('/assets/fonts/font.ttf', 14)
 
         except pygame.error as e:
             print(f'Font file load fail: {e}')
@@ -110,7 +157,7 @@ class GameRenderer:
             pygame.quit()
             exit()
 
-    def _create_etc(self):
+    def _create_components(self):
         # Move Highlights Circle 생성
         self.highlights_move_circle = self._create_smooth_circle(15, 0, self.BLACK_COLOR)
         self.highlights_catch_circle = self._create_smooth_circle(70, 5, self.BLACK_COLOR)
@@ -124,6 +171,26 @@ class GameRenderer:
         # 상단 UI 배경 화면 생성
         self.background_text_surface = pygame.Surface((self.SCREEN_WIDTH, 100), pygame.SRCALPHA)
         self.background_text_surface.fill(self.WINDOW_COLOR)
+
+        # 진영 색 표시 생성
+        self.red_team_surface = pygame.Surface((self.BOARD_WIDTH, self.CELL_SIZE), pygame.SRCALPHA)
+        self.red_team_surface.fill(self.TEAM_COLOR[1])
+        self.green_team_surface = pygame.Surface((self.BOARD_WIDTH, self.CELL_SIZE), pygame.SRCALPHA)
+        self.green_team_surface.fill(self.TEAM_COLOR[-1])
+
+        # 포로 기물판 표시 생성
+        self.red_taken_board_rect = pygame.Rect(self.TAKEN_BOARD_X, self.TAKNE_BOARD_Y + self.BOARD_HEIGHT - self.TAKEN_CELL_SIZE * 3, self.TAKEN_BOARD_WIDTH, self.TAKEN_BOARD_HEIGHT)
+        self.green_taken_board_rect = pygame.Rect(self.TAKEN_BOARD_X, self.TAKNE_BOARD_Y, self.TAKEN_BOARD_WIDTH, self.TAKEN_BOARD_HEIGHT)
+
+        # 좌표 Text 생성
+        self.row_coord_surface = []
+        for row in range(4):
+            self.row_text_surface.append(self.ui_sub_font.render(str(4 - row), True, (255, 255, 255, 255)))
+
+        self.col_coord_surface = []
+        for col in range(3):
+            self.col_coord_surface.append(self.ui_sub_font.render(str(chr(col + ord('a'))), True, (255, 255, 255, 255)))
+        
 
     def _create_smooth_circle(self, radius, width, color):
         scale_multiple = 4
