@@ -7,12 +7,15 @@ from .utils import move_to_action, Piece
 
 class TwJanggiGame:
     def __init__(self):
+        self.renderer = GameRenderer()
         self.reset()
 
     def reset(self):
         self.env = TwJanggiEnv()
-        self.renderer = GameRenderer()
         self.running = True
+
+        self.history = [self.env.copy()]
+        self.history_cursor = 0
 
         self.info = {
                 'highlights_moves': [],
@@ -32,12 +35,12 @@ class TwJanggiGame:
                         self.reset()
 
                     elif event.key == pygame.K_LEFT:
-                        pass
+                        self._shift_history(-1)
 
                     elif event.key == pygame.K_RIGHT:
-                        pass
+                        self._shift_history(1)
 
-                if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.type == pygame.MOUSEBUTTONDOWN and not self.env.done:
                     self._handle_mouse_click()
 
             self.renderer.render(self.env, self.info)
@@ -128,6 +131,24 @@ class TwJanggiGame:
         self.info['selected_taken_piece'] = Piece.EMPTY
         self.info['selected_pos'] = ()
 
+    def _shift_history(self, direction):
+        if direction == -1 and self.history_cursor == 0:
+            return
+        
+        if direction == 1 and self.history_cursor == len(self.history)-1:
+            return
+        
+        self.history_cursor += direction
+        self.env = self.history[self.history_cursor].copy()
+        self._reset_selection()
+        self.renderer.play_move_sound()
+
     def _commit_action(self):
         self._reset_selection()
         self.renderer.play_move_sound()
+
+        if self.history_cursor != len(self.history)-1:
+            self.history = self.history[:self.history_cursor+1]
+        
+        self.history.append(self.env.copy())
+        self.history_cursor += 1
