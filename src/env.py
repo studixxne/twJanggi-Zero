@@ -1,5 +1,6 @@
 import numpy as np
-from utils import *
+import copy
+from .utils import *
 
 class TwJanggiEnv:
     def __init__(self):
@@ -17,11 +18,12 @@ class TwJanggiEnv:
         self.king_enter = {1:False, -1:False}
         # 자, 상, 장 포로 보유 개수
         self.taken_piece = {1:[0, 0, 0], -1:[0, 0, 0]}
+        self.done = False
+        self.winner = 0
 
     def step(self, action):
         self.turn += 1
         move = action_to_move(action)
-        done = False
 
         # 기물 이동
         if move[0] != -1:
@@ -35,9 +37,9 @@ class TwJanggiEnv:
                 
                 # 왕이 잡힌 경우 체크
                 if captured == Piece.KING:
-                    done = True
-
-                self.taken_piece[self.current_player][captured-1] += 1
+                    self.done = True
+                else:
+                    self.taken_piece[self.current_player][captured-1] += 1
 
             # 기물 최종 이동
             self.board[next_row][next_col] = piece
@@ -58,23 +60,25 @@ class TwJanggiEnv:
 
         reward = 0
         # 왕을 잡는 것에 성공한 경우 승리
-        if done:
+        if self.done:
             reward = 1
-        elif not done:
+            self.winner = self.current_player
+        elif not self.done:
             # 상대가 왕의 기지에서 1턴 버틴 경우 패배
             if self.king_enter[self.current_player * -1]:
-                done = True
+                self.done = True
+                self.winner = self.winner = self.current_player * -1
                 reward = -1
             # 계속된 수 반복으로 인한 무승부 처리
             elif self.turn >= 150:
-                done = True
+                self.done = True
                 reward = 0
 
         self.current_player *= -1
         next_state = self._get_next_state()
         info = {}
 
-        return next_state, reward, done, info
+        return next_state, reward, self.done, info
 
     def get_valid_actions(self):
         valid_actions = np.zeros(self.action_size)
@@ -108,6 +112,14 @@ class TwJanggiEnv:
                             valid_moves.append((-1, piece_type+1, r, c))
 
         return valid_moves
+    
+    def get_valid_move(self, r, c):
+        all_moves = self._get_valid_moves()
+        return [m for m in all_moves if m[0] == r and m[1] == c]
+    
+    def get_valid_place(self, piece):
+        all_moves = self._get_valid_moves()
+        return [m for m in all_moves if m[0] == -1 and m[1] == piece]
 
     def _is_enemy_location(self, row):
         if self.current_player == 1 and row == 0: return True
@@ -122,6 +134,10 @@ class TwJanggiEnv:
              [Piece.SANG, Piece.KING, Piece.JANG]], dtype=np.int8)
 
         return board
+    
+    def copy(self):
+        return copy.deepcopy(self)
+
 
     def _get_next_state(self):
         # TODO: 다음 상태에 대한 반전된 정보를 전달 (Training)
