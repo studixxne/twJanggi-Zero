@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 from .utils import Piece
 
 
@@ -29,6 +30,7 @@ class GameRenderer:
 
         self.BLACK_COLOR = (33, 33, 33, 97)
         self.WINDOW_COLOR = (74, 74, 74, 180)
+        self.LINE_COLOR = (240, 234, 214, 100)
 
         self.TEAM_COLOR = {1: (204, 61, 61), -1: (65, 175, 57)}
 
@@ -40,6 +42,8 @@ class GameRenderer:
         self.clock = pygame.time.Clock()
         pygame.display.set_caption('twJanggi')
 
+
+        self.base_path = os.path.dirname(os.path.abspath(__file__))
         self._load_images()
         self._load_fonts()
         self._load_sounds()
@@ -51,6 +55,7 @@ class GameRenderer:
         self._draw_select_piece(env, info)
         self._draw_pieces(env)
         self._draw_highlights(env, info)
+        self._draw_ui(env)
 
         pygame.display.update()
     
@@ -142,19 +147,66 @@ class GameRenderer:
                     t_rect = self.highlights_catch_circle.get_rect(center=(hx, hy))
                     self.screen.blit(self.highlights_catch_circle, t_rect)
 
+    def _draw_ui(self, env):
+        pygame.draw.line(self.screen, self.LINE_COLOR, (0, 100), (self.SCREEN_WIDTH, 100), 2)
+        self.screen.blit(self.background_text_surface, (0, 0))
+
+        # 텍스트 생성
+        round_text = f'{(env.turn + 1) // 2} moves'
+        turn_text = ''
+        add_text = ''
+
+        if env.done:
+            if env.winner == 1:
+                turn_text = 'Red Win!'
+            elif env.winner == -1:
+                turn_text = 'Green Win!'
+            else:
+                turn_text = 'Draw!'
+
+            if env.winner != 0:
+                if env.king_enter[env.winner]:
+                    add_text = "The player's king stayed in the enemy's territory for a round"
+                else:
+                    add_text = "The player captures the enemy's king"
+        else:
+            # 누구의 턴인지 표시
+            if env.current_player == 1:
+                turn_text = 'Red Turn'
+            else:
+                turn_text = 'Green Turn'
+
+        # 턴 설명
+        turn_text_surface = self.ui_font.render(turn_text, True, (255, 255, 255))
+        turn_text_rect = turn_text_surface.get_rect()
+        turn_text_rect.center = (self.SCREEN_WIDTH // 2, 40)
+        self.screen.blit(turn_text_surface, turn_text_rect)
+
+        # 추가 상황 설명
+        add_text_surface = self.ui_sub_font.render(add_text, True, (255, 255, 255))
+        add_text_rect = add_text_surface.get_rect()
+        add_text_rect.center = (self.SCREEN_WIDTH // 2, 70)
+        self.screen.blit(add_text_surface, add_text_rect)
+
+        round_text_surface = self.ui_sub_font.render(round_text, True, (255, 255, 255))
+        round_rect = round_text_surface.get_rect()
+        round_rect.center = (60, 80)
+        self.screen.blit(round_text_surface, round_rect)
+
     def play_move_sound(self):
         self.sounds[random.randint(0, 3)].play()
 
     def _load_images(self):
+        image_path = os.path.join(self.base_path, '..', 'assets', 'images')
         try:
             images = {
-                'board': pygame.image.load('assets/images/board_image.jpg'),
-                'red_king': pygame.image.load('assets/images/RED_KING.jpg'),
-                'green_king': pygame.image.load('assets/images/GREEN_KING.jpg'),
-                'ja': pygame.image.load('assets/images/JA.jpg'),
-                'sang': pygame.image.load('assets/images/SANG.jpg'),
-                'jang': pygame.image.load('assets/images/JANG.jpg'),
-                'hu': pygame.image.load('assets/images/HU.jpg')
+                'board': pygame.image.load(os.path.join(image_path, 'board_image.jpg')),
+                'red_king': pygame.image.load(os.path.join(image_path, 'RED_KING.jpg')),
+                'green_king': pygame.image.load(os.path.join(image_path, 'GREEN_KING.jpg')),
+                'ja': pygame.image.load(os.path.join(image_path, 'JA.jpg')),
+                'sang': pygame.image.load(os.path.join(image_path, 'SANG.jpg')),
+                'jang': pygame.image.load(os.path.join(image_path, 'JANG.jpg')),
+                'hu': pygame.image.load(os.path.join(image_path, 'HU.jpg'))
             }
 
         except pygame.error as e:
@@ -194,9 +246,10 @@ class GameRenderer:
         }
 
     def _load_fonts(self):
+        font_path = os.path.join(self.base_path, '..', 'assets', 'fonts')
         try:
-            self.ui_font = pygame.font.Font('assets/fonts/font.ttf', 24)
-            self.ui_sub_font = pygame.font.Font('assets/fonts/font.ttf', 15)
+            self.ui_font = pygame.font.Font(os.path.join(font_path, 'font.ttf'), 24)
+            self.ui_sub_font = pygame.font.Font(os.path.join(font_path, 'font.ttf'), 15)
 
         except pygame.error as e:
             print(f'Font file load fail: {e}')
@@ -204,11 +257,12 @@ class GameRenderer:
             exit()
 
     def _load_sounds(self):
+        sound_path = os.path.join(self.base_path, '..', 'assets', 'sounds')
         try:
-            sound_1 = pygame.mixer.Sound('assets/sounds/place1.wav')
-            sound_2 = pygame.mixer.Sound('assets/sounds/place2.wav')
-            sound_3 = pygame.mixer.Sound('assets/sounds/place3.wav')
-            sound_4 = pygame.mixer.Sound('assets/sounds/place4.wav')
+            sound_1 = pygame.mixer.Sound(os.path.join(sound_path, 'place1.wav'))
+            sound_2 = pygame.mixer.Sound(os.path.join(sound_path, 'place2.wav'))
+            sound_3 = pygame.mixer.Sound(os.path.join(sound_path, 'place3.wav'))
+            sound_4 = pygame.mixer.Sound(os.path.join(sound_path, 'place4.wav'))
 
             self.sounds = [sound_1, sound_2, sound_3, sound_4]
 
@@ -257,6 +311,7 @@ class GameRenderer:
             1: pygame.Rect(self.TAKEN_BOARD_POS[1][0], self.TAKEN_BOARD_POS[1][1], self.TAKEN_BOARD_WIDTH, self.TAKEN_BOARD_HEIGHT),
             -1: pygame.Rect(self.TAKEN_BOARD_POS[-1][0], self.TAKEN_BOARD_POS[-1][1], self.TAKEN_BOARD_WIDTH, self.TAKEN_BOARD_HEIGHT)
         }
+
         
     def _create_smooth_circle(self, radius, width, color):
         scale_multiple = 4
