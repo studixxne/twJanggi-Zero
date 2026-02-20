@@ -16,7 +16,7 @@ class Node:
             return float('inf')
 
         q = -self.v / self.n
-        u = np.sqrt(2 * np.log(self.parent.n) / self.n)
+        u = 2 * np.sqrt(np.log(self.parent.n) / self.n)
         return q + u
 
 class MCTS:
