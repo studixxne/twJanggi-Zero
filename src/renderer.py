@@ -169,6 +169,13 @@ class GameRenderer:
                     add_text = "The player's king stayed in the enemy's territory for a round"
                 else:
                     add_text = "The player captures the enemy's king"
+
+            elif env.winner == 0:
+                if env.repeat >= 3:
+                    add_text = "Threefold Repetition"
+                else:
+                    add_text = "Exceed limited moves"
+
         else:
             # 누구의 턴인지 표시
             if env.current_player == 1:

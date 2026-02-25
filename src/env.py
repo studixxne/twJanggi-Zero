@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+from collections import Counter
 from .utils import *
 
 class TwJanggiEnv:
@@ -9,6 +10,7 @@ class TwJanggiEnv:
         # 0~95: (4, 3) 장기판에서 8가지 방향으로 이동하는 경우의 수
         # 96~131: 자, 장, 상 세 가지 말을 (4, 3) 장기판에 배치하는 경우의 수
         self.action_size = 132
+        self.state_counts = Counter()
         self.reset()
 
     def reset(self):
@@ -20,6 +22,9 @@ class TwJanggiEnv:
         self.taken_piece = {1:[0, 0, 0], -1:[0, 0, 0]}
         self.done = False
         self.winner = 0
+        self.repeat = 0
+        self.state_counts.clear()
+        self.state_counts[self._get_hashable_state()] += 1
 
     def step(self, action):
         self.turn += 1
@@ -58,23 +63,27 @@ class TwJanggiEnv:
             self.board[next_row][next_col] = piece * self.current_player
             self.taken_piece[self.current_player][piece-1] -= 1
 
+        self.current_player *= -1
+        current_hash = self._get_hashable_state()
+        self.state_counts[current_hash] += 1
+        self.repeat = max(self.repeat, self.state_counts[current_hash] - 1)
+
         reward = 0
         # 왕을 잡는 것에 성공한 경우 승리
         if self.done:
             reward = 1
-            self.winner = self.current_player
+            self.winner = -self.current_player
         elif not self.done:
             # 상대가 왕의 기지에서 1턴 버틴 경우 패배
-            if self.king_enter[self.current_player * -1]:
+            if self.king_enter[self.current_player]:
                 self.done = True
-                self.winner = self.winner = self.current_player * -1
+                self.winner = self.current_player
                 reward = -1
-            # 계속된 수 반복으로 인한 무승부 처리
-            elif self.turn >= 150:
+            # 계속된 수 혹은 천일수 무승부 처리
+            elif self.turn >= 150 or self.repeat >= 3:
                 self.done = True
                 reward = 0
 
-        self.current_player *= -1
         next_state = self._get_next_state()
         info = {}
 
@@ -135,9 +144,14 @@ class TwJanggiEnv:
 
         return board
     
+    def _get_hashable_state(self):
+        board_bytes = self.board.tobytes()
+        king_enter = tuple(self.king_enter)
+        taken_piece = tuple(self.taken_piece)
+        return hash((board_bytes, self.current_player, king_enter, taken_piece))
+    
     def copy(self):
         return copy.deepcopy(self)
-
 
     def _get_next_state(self):
         # TODO: 다음 상태에 대한 반전된 정보를 전달 (Training)
