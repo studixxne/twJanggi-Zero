@@ -66,7 +66,7 @@ class TwJanggiEnv:
         self.current_player *= -1
         current_hash = self._get_hashable_state()
         self.state_counts[current_hash] += 1
-        self.repeat = max(self.repeat, self.state_counts[current_hash] - 1)
+        self.repeat = self.state_counts[current_hash] - 1
 
         reward = 0
         # 왕을 잡는 것에 성공한 경우 승리
@@ -84,7 +84,7 @@ class TwJanggiEnv:
                 self.done = True
                 reward = 0
 
-        next_state = self._get_next_state()
+        next_state = self.get_state()
         info = {}
 
         return next_state, reward, self.done, info
@@ -146,13 +146,12 @@ class TwJanggiEnv:
     
     def _get_hashable_state(self):
         board_bytes = self.board.tobytes()
-        king_enter = tuple(self.king_enter)
-        taken_piece = tuple(self.taken_piece)
+        king_enter = (self.king_enter[1], self.king_enter[-1])
+        taken_piece = (tuple(self.taken_piece[1]), tuple(self.taken_piece[-1]))
         return hash((board_bytes, self.current_player, king_enter, taken_piece))
     
     def copy(self):
         return copy.deepcopy(self)
 
-    def _get_next_state(self):
-        # TODO: 다음 상태에 대한 반전된 정보를 전달 (Training)
-        pass
+    def get_state(self):
+        return (self.board.copy(), copy.deepcopy(self.taken_piece), copy.deepcopy(self.king_enter), self.turn, self.repeat, self.current_player)
