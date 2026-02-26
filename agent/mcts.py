@@ -1,5 +1,4 @@
 import torch
-from torch import nn
 import numpy as np
 
 class Node:
@@ -11,13 +10,13 @@ class Node:
         self.is_expansion = False
 
         # Childs에 대한 Edge
-        self.P = np.zeros(132)
-        self.N = np.zeros(132)
-        self.W = np.zeros(132)
-        self.Q = np.zeros(132)
+        self.P = np.zeros(132, dtype=np.float32)
+        self.N = np.zeros(132, dtype=np.float32)
+        self.W = np.zeros(132, dtype=np.float32)
+        self.Q = np.zeros(132, dtype=np.float32)
 
     def get_U(self, c_puct=2):
-        U = c_puct * self.P * np.sqrt(np.sum(self.N)) / (1 + self.N)
+        U = c_puct * self.P * np.sqrt(np.sum(self.N) + 1) / (self.N + 1)
         UCB = self.Q + U
         UCB[self.mask] = -np.inf
         return np.argmax(UCB)
@@ -44,7 +43,7 @@ class MCTS:
 
         # Terminal Node가 아닌 경우에는 Expansion을 진행
         if not done:            
-            value = self.expansion(cur, env, state)
+            value = -self.expansion(cur, env, state)
 
         # Terminal Node인 경우에는 그냥 Reward 가져옴
         else:
