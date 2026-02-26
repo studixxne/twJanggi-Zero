@@ -90,3 +90,38 @@ class MCTS:
 
             if cur == self.root:
                 break
+
+    def next_node(self, action):
+        if action in self.root.childs:
+            self.root = self.root.childs[action]
+            self.root.parent = None
+        else:
+            self.root = Node(None, None)
+
+    def get_pi(self, env, alpha=0.3, epsilon=0.25, temperature=1, num_traversal=700):
+        if not self.root.is_expansion:
+            state = env.get_state()
+            self.expansion(self.root, env, state)
+
+        # dirichlet 노이즈 추가
+        valid_actions = env.get_valid_actions()
+        valid_actions_indices = np.where(valid_actions == 1)[0]
+        noise = np.random.dirichlet([alpha] * np.sum(valid_actions))
+
+        for i, action in enumerate(valid_actions_indices):
+            self.root.P[action] = self.root.P[action] * (1-epsilon) + epsilon * noise[i]
+
+        # MCTS 확장
+        for _ in range(num_traversal):
+            self.traversal(env)
+
+        # pi 반환
+        if temperature > 1e-3:
+            N = self.root.N ** (1.0 / temperature)
+            pi = N / np.sum(N)
+        
+        else:
+            pi = np.zeros(132, dtype=np.float32)
+            pi[np.argmax(self.root.N)] = 1.0
+        
+        return pi
