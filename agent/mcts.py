@@ -8,6 +8,7 @@ class Node:
         self.childs = {}
         self.action = action
         self.mask = None
+        self.is_expansion = False
 
         # Childs에 대한 Edge
         self.P = np.zeros(132)
@@ -22,8 +23,8 @@ class Node:
         return np.argmax(UCB)
     
 class MCTS:
-    def __init__(self, root, encoder, network):
-        self.root = root
+    def __init__(self, encoder, network):
+        self.root = Node(None, None)
         self.encoder = encoder
         self.network = network
 
@@ -32,22 +33,18 @@ class MCTS:
         cur = self.root
 
         # Leaf Node를 찾도록 함
-        while len(cur.childs):
+        while cur.is_expansion:
             action = cur.get_U()
+
+            if not action in cur.childs:
+                cur.childs[action] = Node(cur, action)
+
             state, reward, done, info = env.step(action)
             cur = cur.childs[action]
 
         # Terminal Node가 아닌 경우에는 Expansion을 진행
-        if not done:
-            state_tensor = self.encoder.get_tensor(state)
-
-            with torch.no_grad():
-                policy_tensor, value_tensor = self.network(state_tensor)
-
-            policy = policy_tensor.squeeze(0).cpu().numpy()
-            value = value_tensor.item()
-            
-            self.expansion(cur, env, policy)
+        if not done:            
+            value = self.expansion(cur, env, state)
 
         # Terminal Node인 경우에는 그냥 Reward 가져옴
         else:
@@ -56,9 +53,16 @@ class MCTS:
         # 얻어낸 Value를 기반으로 Backpropagation 수행
         self.backpropagation(cur, value)
 
-    def expansion(self, node, env, policy):
+    def expansion(self, node, env, state):
+        state_tensor = self.encoder.get_tensor(state)
+
+        with torch.no_grad():
+            policy_tensor, value_tensor = self.network(state_tensor)
+
+        policy = policy_tensor.squeeze(0).cpu().numpy()
+        value = value_tensor.item()
+
         valid_actions = env.get_valid_actions()
-        valid_actions_indices = np.where(valid_actions == 1)[0]
         mask = (valid_actions == 0)
 
         prob = policy.copy()
@@ -68,9 +72,9 @@ class MCTS:
 
         node.P = prob
         node.mask = mask
+        node.is_expansion = True
 
-        for i in valid_actions_indices:
-            node.childs[i] = Node(node, i)
+        return value
 
     def backpropagation(self, node, v):
         if node == self.root:
