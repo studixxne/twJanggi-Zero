@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from collections import deque
 
 class Node:
     def __init__(self, p, action):
@@ -22,14 +23,16 @@ class Node:
         return np.argmax(UCB)
     
 class MCTS:
-    def __init__(self, encoder, network):
+    def __init__(self, encoder, network, T):
         self.root = Node(None, None)
         self.encoder = encoder
         self.network = network
+        self.T = T
 
-    def traversal(self, env):
+    def traversal(self, env, history):
         env = env.copy()
         cur = self.root
+        search_history = deque(history, maxlen=self.T)
 
         # Leaf Node를 찾도록 함
         while cur.is_expansion:
@@ -39,11 +42,12 @@ class MCTS:
                 cur.childs[action] = Node(cur, action)
 
             state, reward, done, info = env.step(action)
+            search_history.append(state)
             cur = cur.childs[action]
 
         # Terminal Node가 아닌 경우에는 Expansion을 진행
         if not done:            
-            value = -self.expansion(cur, env, state)
+            value = -self.expansion(cur, env, search_history)
 
         # Terminal Node인 경우에는 그냥 Reward 가져옴
         else:
@@ -52,8 +56,8 @@ class MCTS:
         # 얻어낸 Value를 기반으로 Backpropagation 수행
         self.backpropagation(cur, value)
 
-    def expansion(self, node, env, state):
-        state_tensor = self.encoder.get_tensor(state)
+    def expansion(self, node, env, history):
+        state_tensor = self.encoder.get_tensor(history)
 
         with torch.no_grad():
             policy_tensor, value_tensor = self.network(state_tensor)
@@ -98,10 +102,9 @@ class MCTS:
         else:
             self.root = Node(None, None)
 
-    def get_pi(self, env, alpha=0.3, epsilon=0.25, temperature=1, num_traversal=700):
+    def get_pi(self, env, history, alpha=0.3, epsilon=0.25, temperature=1, num_traversal=700):
         if not self.root.is_expansion:
-            state = env.get_state()
-            self.expansion(self.root, env, state)
+            self.expansion(self.root, env, history)
 
         # dirichlet 노이즈 추가
         valid_actions = env.get_valid_actions()
@@ -113,7 +116,7 @@ class MCTS:
 
         # MCTS 확장
         for _ in range(num_traversal):
-            self.traversal(env)
+            self.traversal(env, history)
 
         # pi 반환
         if temperature > 1e-3:
