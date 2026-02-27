@@ -12,36 +12,52 @@ from agent.mcts import MCTS
 from collections import deque
 
 class SelfPlay:
-    def __init__(self, encoder, network):
+    def __init__(self, T, encoder, network):
         self.env = TwJanggiEnv()
         self.encoder = encoder
         self.network = network
+        self.T = T
 
     def run(self, dataset, num_play, num_traversal):
         self.network.eval()
 
         for episode in range(num_play):
-            history = []
+            # 초기화
+            data = []
+            history = deque(maxlen=self.T)
             state = self.env.reset()
-            mcts = MCTS(self.encoder, self.network)
+            history.append(state)
+            mcts = MCTS(self.encoder, self.network, self.T)
 
             while True:
+                # 일정 턴수 이상부터 탐색 보너스 제거
                 temperature = 1 if self.env.turn < 30 else 0
-                pi = mcts.get_pi(self.env, num_traversal=num_traversal, temperature=temperature)
-                history.append([state, pi])
-                action = np.random.choice(np.arange(132), p=pi)
-                mcts.next_node(action)
-                state, reward, done, info = self.env.step(action)
 
+                # 현재 상태에서 MCTS를 통해 얻어 낸 pi 받아오기
+                pi = mcts.get_pi(self.env, history, num_traversal=num_traversal, temperature=temperature)
+
+                # state_tensor와 pi를 Training Data에 저장
+                state_tensor = self.encoder.get_tensor(list(history)).detach().cpu()
+                data.append([state_tensor, pi])
+
+                # 다음 Action 선택 및 Step 이후 History 기록
+                action = np.random.choice(np.arange(132), p=pi)
+                state, reward, done, info = self.env.step(action)
+                mcts.step(action)
+                history.append(state)
+
+                # 종료 시 reward 저장 후 Episode 종료
                 if done:
                     z = reward
                     break
 
-            for h in history[::-1]:
+            # Episode 결과를 Data에 추가
+            for h in data[::-1]:
                 h.append(z)
                 z *= -1
 
-            dataset.extend(history)
+            # Dataset에 이번 Episode에 얻은 Data 추가
+            dataset.extend(data)
     
 class LossFunc(nn.Module):
     def __init__(self):
@@ -69,7 +85,7 @@ class Trainer:
 
         self.encoder = TwJanggiEncoder(self.T)
         self.network = TwJanggiNet(self.T*21+2, self.hidden_ch, self.num_block)
-        self.player = SelfPlay(self.encoder, self.network)
+        self.player = SelfPlay(self.T, self.encoder, self.network)
         self.dataset = deque(maxlen=100000)
 
         self.optimizer = Adam(self.network.parameters(), weight_decay=self.c)
