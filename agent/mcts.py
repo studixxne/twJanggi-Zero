@@ -95,7 +95,7 @@ class MCTS:
             if cur == self.root:
                 break
 
-    def next_node(self, action):
+    def step(self, action):
         if action in self.root.childs:
             self.root = self.root.childs[action]
             self.root.parent = None
