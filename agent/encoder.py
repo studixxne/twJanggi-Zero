@@ -36,7 +36,7 @@ class TwJanggiEncoder:
             repeat_array[s_repeat, 0, 0] = 1.0
             layers.append(np.broadcast_to(repeat_array, (3, 4, 3)))
 
-            king_enter_array = np.array((s_king_enter[1], s_king_enter[-1]), dtype=np.float32).reshape(3, 1, 1)
+            king_enter_array = np.array((s_king_enter[1], s_king_enter[-1]), dtype=np.float32).reshape(2, 1, 1)
             layers.append(np.broadcast_to(king_enter_array, (2, 4, 3)))
 
             result = np.concatenate(layers)
