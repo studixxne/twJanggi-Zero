@@ -106,7 +106,7 @@ class MCTS:
         # dirichlet 노이즈 추가
         valid_actions = env.get_valid_actions()
         valid_actions_indices = np.where(valid_actions == 1)[0]
-        noise = np.random.dirichlet([alpha] * np.sum(valid_actions))
+        noise = np.random.dirichlet([alpha] * np.sum(valid_actions, dtype=np.int8))
 
         for i, action in enumerate(valid_actions_indices):
             self.root.P[action] = self.root.P[action] * (1-epsilon) + epsilon * noise[i]
