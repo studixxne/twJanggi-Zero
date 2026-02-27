@@ -57,7 +57,7 @@ class MCTS:
         self.backpropagation(cur, value)
 
     def expansion(self, node, env, history):
-        state_tensor = self.encoder.get_tensor(history)
+        state_tensor = self.encoder.get_tensor(list(history))
 
         with torch.no_grad():
             policy_tensor, value_tensor = self.network(state_tensor)
