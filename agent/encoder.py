@@ -3,6 +3,15 @@ import numpy as np
 import copy
 from collections import deque
 
+FLIP_ACTION = np.array([
+92, 93, 94, 95, 88, 89, 90, 91, 84, 85, 86, 87, 80, 81, 82, 83, 76, 77, 78, 79, 
+72, 73, 74, 75, 68, 69, 70, 71, 64, 65, 66, 67, 60, 61, 62, 63, 56, 57, 58, 59, 
+52, 53, 54, 55, 48, 49, 50, 51, 44, 45, 46, 47, 40, 41, 42, 43, 36, 37, 38, 39, 
+32, 33, 34, 35, 28, 29, 30, 31, 24, 25, 26, 27, 20, 21, 22, 23, 16, 17, 18, 19, 
+12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3, 107, 106, 105, 104, 
+103, 102, 101, 100, 99, 98, 97, 96, 119, 118, 117, 116, 115, 114, 113, 112, 111, 110, 109, 108, 
+131, 130, 129, 128, 127, 126, 125, 124, 123, 122, 121, 120])
+
 class TwJanggiEncoder:
     def __init__(self, T):
         self.M = 21
@@ -50,9 +59,15 @@ class TwJanggiEncoder:
         board, taken_piece, king_enter, *remain = state
 
         flip_board = np.flip(board * -1)
-        flip_taken_piece = {-1: copy.deepcopy(taken_piece[1]),
-                            1: copy.deepcopy(taken_piece[-1])}
+        flip_taken_piece = {-1: taken_piece[1][:],
+                            1: taken_piece[-1][:]}
         flip_king_enter = {-1: king_enter[1],
                            1: king_enter[-1]}
         
         return [flip_board, flip_taken_piece, flip_king_enter] + remain
+    
+    def get_flip_policy(self, policy, player):
+        if player == 1:
+            return policy
+        
+        return policy[FLIP_ACTION]
