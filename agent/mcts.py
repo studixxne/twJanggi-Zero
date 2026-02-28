@@ -57,12 +57,14 @@ class MCTS:
         self.backpropagation(cur, value)
 
     def expansion(self, node, env, history):
-        state_tensor = self.encoder.get_tensor(list(history))
+        device = next(self.network.parameters()).device
+        state_tensor = self.encoder.get_tensor(list(history)).to(device)
 
         with torch.no_grad():
             policy_tensor, value_tensor = self.network(state_tensor)
 
         policy = policy_tensor.squeeze(0).cpu().numpy()
+        policy = self.encoder.get_flip_policy(policy, env.current_player)
         value = value_tensor.item()
 
         valid_actions = env.get_valid_actions()
@@ -107,12 +109,13 @@ class MCTS:
             self.expansion(self.root, env, history)
 
         # dirichlet 노이즈 추가
-        valid_actions = env.get_valid_actions()
-        valid_actions_indices = np.where(valid_actions == 1)[0]
-        noise = np.random.dirichlet([alpha] * np.sum(valid_actions, dtype=np.int8))
+        if alpha > 0:
+            valid_actions = env.get_valid_actions()
+            valid_actions_indices = np.where(valid_actions == 1)[0]
+            noise = np.random.dirichlet([alpha] * np.sum(valid_actions, dtype=np.int8))
 
-        for i, action in enumerate(valid_actions_indices):
-            self.root.P[action] = self.root.P[action] * (1-epsilon) + epsilon * noise[i]
+            for i, action in enumerate(valid_actions_indices):
+                self.root.P[action] = self.root.P[action] * (1-epsilon) + epsilon * noise[i]
 
         # MCTS 확장
         for _ in range(num_traversal):
