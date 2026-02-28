@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 from collections import Counter
 from .utils import *
 
@@ -25,6 +24,7 @@ class TwJanggiEnv:
         self.repeat = 0
         self.state_counts.clear()
         self.state_counts[self._get_hashable_state()] += 1
+        return self.get_state()
 
     def step(self, action):
         self.turn += 1
@@ -151,7 +151,29 @@ class TwJanggiEnv:
         return hash((board_bytes, self.current_player, king_enter, taken_piece))
     
     def copy(self):
-        return copy.deepcopy(self)
+        new_env = TwJanggiEnv.__new__(TwJanggiEnv)
+
+        new_env.rows = 4
+        new_env.cols = 3
+        new_env.action_size = 132
+
+        new_env.board = self.board.copy()
+        new_env.current_player = self.current_player
+        new_env.turn = self.turn
+        new_env.done = self.done
+        new_env.winner = self.winner
+        new_env.repeat = self.repeat
+
+        new_env.king_enter = {-1:self.king_enter[-1], 1:self.king_enter[1]}
+        new_env.taken_piece = {1:self.taken_piece[1][:],
+                               -1:self.taken_piece[-1][:]}
+        
+        new_env.state_counts = self.state_counts.copy()
+
+        return new_env
 
     def get_state(self):
-        return (self.board.copy(), copy.deepcopy(self.taken_piece), copy.deepcopy(self.king_enter), self.turn, self.repeat, self.current_player)
+        board = self.board.copy()
+        taken_piece = {-1:self.taken_piece[-1][:], 1:self.taken_piece[1][:]}
+        king_enter = {-1:self.king_enter[-1], 1:self.king_enter[1]}
+        return board, taken_piece, king_enter, self.turn, self.repeat, self.current_player
