@@ -37,7 +37,7 @@ class TwJanggiEncoder:
         # 누구의 턴 (레드(선공) 플레이어면 0, 초록(후공) 플레이어면 1)
         layers.append(np.zeros((1, 4, 3)) if player == 1 else np.ones((1, 4, 3)))
         # 총 이동 수
-        layers.append(np.full((1, 4, 3), turn))
+        layers.append(np.full((1, 4, 3), turn / 150.00))
         
         # (1, M*T+L, 4, 3)의 텐서 반환
         x = torch.tensor(np.concatenate(layers, axis=0), dtype=torch.float32).unsqueeze(0)
