@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-import copy
-from collections import deque
 
 FLIP_ACTION = np.array([
 92, 93, 94, 95, 88, 89, 90, 91, 84, 85, 86, 87, 80, 81, 82, 83, 76, 77, 78, 79, 
