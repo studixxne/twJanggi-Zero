@@ -25,4 +25,3 @@ if __name__ == '__main__':
     
     game = TwJanggiGame(agent=agent, mode='battle', agent_turn=-1 if args.first==1 else 1)
     game.run()
-    # 내가 선이면
