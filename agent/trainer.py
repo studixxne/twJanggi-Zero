@@ -33,10 +33,8 @@ class SelfPlay:
 
         while True:
             # 일정 턴수 이상부터 탐색 보너스 제거
-            if local_env.turn < 30:
-                temperature = 1 
-            elif local_env.turn < 50:
-                temperature = 0.5
+            if local_env.turn < 20:
+                temperature = 1
             else:
                 temperature = 0
 
@@ -90,12 +88,10 @@ class SelfPlay:
                 episode += 1
                 results.append(winner)
 
-                print(f'[{episode}/{num_play}] | Winner: {winner} | turns: {turns}')
-
         w1, w2, draw = results.count(1), results.count(-1), results.count(0)
         print(f'=========== Self Playing Results ===========')
-        print(f'📊 Red: {w1} Win | Green: {w2} Win | Draw: {draw}')
-        print(f'💡 Red Win Rate: {w1/(num_play-draw)*100:.1f}% | Green Win Rate: {w2/(num_play-draw)*100:.1f}% | Draw {draw/num_play*100:.1f}%')
+        print(f'Red: {w1} Win | Green: {w2} Win | Draw: {draw}')
+        print(f'Red Win Rate: {w1/(num_play-draw)*100:.1f}% | Green Win Rate: {w2/(num_play-draw)*100:.1f}% | Draw {draw/num_play*100:.1f}%')
         print("=" * 44)
 
 class LossFunc(nn.Module):
