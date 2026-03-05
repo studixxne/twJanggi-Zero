@@ -209,6 +209,7 @@ class TwJanggiGame:
         
         if self.env.done:
             self.info['win_rate'] = 1 if self.env.winner == -1 else 0
+            self.win_rate_history.append(self.info['win_rate'])
             return
         
         self.is_evaluating = True
