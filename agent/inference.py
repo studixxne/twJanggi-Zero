@@ -13,6 +13,9 @@ class Agent:
 
         network.eval()
 
+    def reset(self):
+        self.mcts = MCTS(self.encoder, self.network, self.encoder.T)
+
     def get_best_action(self, env, history, mode, num_traversal=1000):
         if mode == 'battle':
             if env.turn <= 4:
