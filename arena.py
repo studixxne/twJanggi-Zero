@@ -2,13 +2,13 @@ from agent.encoder import TwJanggiEncoder
 from agent.network import TwJanggiNet
 from agent.inference import Agent
 from src.game import TwJanggiGame
-from src.utils import action_to_text
 
 class Arena:
-    def __init__(self, agent1, agent2, game):
+    def __init__(self, agent1, agent2, game, num_traversal):
         self.agent1 = agent1
         self.agent2 = agent2
         self.game = game
+        self.num_traversal = num_traversal
 
     def play(self, first=True):
         self.game.reset()
@@ -18,11 +18,10 @@ class Arena:
 
         while True:
             history = self.game.get_state_history(current_agent.encoder)
-            action, win_rate = current_agent.get_best_action(self.game.env, history, mode='arena')
-            print(f'[{current_turn}] {action_to_text(action)} | {win_rate:.2f}%')
+            action, win_rate = current_agent.get_best_action(self.game.env, history, mode='arena', num_traversal=self.num_traversal)
             self.game.step(action)
-            self.agent1.mcts.step(action)
-            self.agent2.mcts.step(action)
+            self.agent1.step(action)
+            self.agent2.step(action)
             self.game.render()
             current_turn += 1
 
@@ -65,8 +64,8 @@ class Arena:
         print(f"Agent 1 Win: {agent1_win}")
         print(f"Agent 2 Win: {agent2_win}")
         print(f"Draw: {draws}")
-        print(f"Agent 1 Win Rate: {(agent1_win) / (play_games*2 - draws + 1e-7) * 100:.1f}%")
-        print(f"Agent 2 Win Rate: {(agent2_win) / (play_games*2 - draws + 1e-7) * 100:.1f}%")
+        print(f"Agent 1 Win Rate: {(agent1_win) / (play_games*2 - draws + 1e-7) * 100:.2f}%")
+        print(f"Agent 2 Win Rate: {(agent2_win) / (play_games*2 - draws + 1e-7) * 100:.2f}%")
         print("============================")
         return agent1_win, agent2_win, draws
     
@@ -75,10 +74,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="TwJanggi Arena (Model Performance Test)")
 
-    parser.add_argument('--model1', type=str, required=True, help='Agent1 Model path ex) data/model1.pth')
-    parser.add_argument('--model2', type=str, required=True, help='Agent2 Model path ex) data/model2.pth')
+    parser.add_argument('--model1', type=str, required=True, help='Agent1 Model path ex) model/model1.pth')
+    parser.add_argument('--model2', type=str, required=True, help='Agent2 Model path ex) model/model2.pth')
 
-    parser.add_argument('--num_games', type=int, default=10, help='total games')
+    parser.add_argument('--num_games', type=int, default=30, help='total games')
     parser.add_argument('--num_traversal', type=int, default=1000, help='MCTS traversal num')
     
     parser.add_argument('--T1', type=int, default=4, help='Model1 Time step')
@@ -97,11 +96,11 @@ if __name__ == '__main__':
     encoder2 = TwJanggiEncoder(args.T2)
     network2 = TwJanggiNet(args.T2*21+2, args.hidden_ch2, args.num_block2)
 
-    agent1 = Agent(encoder1, network1, num_traversal=args.num_traversal, model_path=args.model1)
-    agent2 = Agent(encoder2, network2, num_traversal=args.num_traversal, model_path=args.model2)
+    agent1 = Agent(encoder1, network1, model_path=args.model1)
+    agent2 = Agent(encoder2, network2, model_path=args.model2)
     
-    game = TwJanggiGame()
-    arena = Arena(agent1, agent2, game)
+    game = TwJanggiGame(mode='arena')
+    arena = Arena(agent1, agent2, game, num_traversal=args.num_traversal)
 
     arena.run(args.num_games)
 
