@@ -19,7 +19,7 @@ class Node:
         u = 2 * np.sqrt(np.log(self.parent.n) / self.n)
         return q + u
 
-class MCTS:
+class PureMCTS:
     def __init__(self, env):
         self.root = Node(env.copy())
 
