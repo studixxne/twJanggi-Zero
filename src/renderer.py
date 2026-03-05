@@ -1,12 +1,14 @@
 import pygame
+import pygame.gfxdraw
 import random
 import os
 from .utils import Piece
+import math
 
 
 class GameRenderer:
     def __init__(self):
-        self.SCREEN_WIDTH = 1440
+        self.SCREEN_WIDTH = 1040
         self.SCREEN_HEIGHT = 780
 
         self.CELL_SIZE = 150
@@ -34,6 +36,12 @@ class GameRenderer:
 
         self.TEAM_COLOR = {1: (204, 61, 61), -1: (65, 175, 57)}
 
+        self.BAR_WIDTH = 25
+        self.BAR_HEIGHT = self.BOARD_HEIGHT
+        self.BAR_X = self.SCREEN_WIDTH - self.BAR_WIDTH - 130
+        self.BAR_Y = self.BOARD_Y
+        self.display_win_rate = 0.5
+
         # 초기화
         pygame.init()
         pygame.mixer.init()
@@ -55,7 +63,9 @@ class GameRenderer:
         self._draw_select_piece(env, info)
         self._draw_pieces(env)
         self._draw_highlights(env, info)
+        self._draw_hint(env.current_player, info['best_action'])
         self._draw_ui(env)
+        self._draw_win_rate_ui(info['win_rate'])
 
         pygame.display.update()
     
@@ -147,12 +157,60 @@ class GameRenderer:
                     t_rect = self.highlights_catch_circle.get_rect(center=(hx, hy))
                     self.screen.blit(self.highlights_catch_circle, t_rect)
 
+    # (206, 242, 121)
+    def _draw_hint(self, player, best_action, color=(255, 255, 181), width=5, head_size=20):
+        if best_action is None:
+            return
+        row, col = best_action[0], best_action[1]
+        next_row, next_col = best_action[2], best_action[3]
+
+        pos_x = self.BOARD_X + col * self.CELL_SIZE + self.CELL_SIZE // 2
+        pos_y = self.BOARD_Y + row * self.CELL_SIZE + self.CELL_SIZE // 2
+        next_pos_x = self.BOARD_X + next_col * self.CELL_SIZE + self.CELL_SIZE // 2
+        next_pos_y = self.BOARD_Y + next_row * self.CELL_SIZE + self.CELL_SIZE // 2
+
+        # 이 경우에는 포로 배치
+        if best_action[0] == -1:
+            piece_type = best_action[1]
+            rect = self.hint_piece_image[(player, piece_type)].get_rect()
+            rect.center = (next_pos_x, next_pos_y)
+            self.screen.blit(self.hint_piece_image[(player, piece_type)], rect)
+            pygame.draw.rect(self.screen, (*color, 100), rect, 3)
+
+        # 말 이동
+        else:
+            self.hint_surface.fill((0, 0, 0, 0))
+            dx, dy = (next_pos_x - pos_x, next_pos_y - pos_y)
+            dist = math.hypot(dx, dy)
+            ux, uy = dx / dist, dy / dist
+            vx, vy = -uy, ux
+
+            sx, sy = pos_x, pos_y
+            ex, ey = next_pos_x - ux * 10, next_pos_y - uy * 10
+
+            p1 = (sx + vx * width/2, sy + vy * width/2)
+            p2 = (sx - vx * width/2, sy - vy * width/2)
+            p3 = (ex - vx * width/2, ey - vy * width/2)
+            p4 = (ex + vx * width/2, ey + vy * width/2)
+
+            pygame.gfxdraw.aapolygon(self.hint_surface, [p1, p2, p3, p4], color)
+            pygame.gfxdraw.filled_polygon(self.hint_surface, [p1, p2, p3, p4], color)
+        
+            angle = math.atan2(dy, dx)
+            angle_offset = math.pi / 6
+            left = (next_pos_x - head_size * math.cos(angle - angle_offset), next_pos_y - head_size * math.sin(angle - angle_offset))
+            right = (next_pos_x - head_size * math.cos(angle + angle_offset), next_pos_y - head_size * math.sin(angle + angle_offset))
+
+            pygame.gfxdraw.aapolygon(self.hint_surface, [(next_pos_x, next_pos_y), left, right], color)
+            pygame.gfxdraw.filled_polygon(self.hint_surface, [(next_pos_x, next_pos_y), left, right], color)
+            self.screen.blit(self.hint_surface, (0, 0))
+
     def _draw_ui(self, env):
         pygame.draw.line(self.screen, self.LINE_COLOR, (0, 100), (self.SCREEN_WIDTH, 100), 2)
         self.screen.blit(self.background_text_surface, (0, 0))
 
         # 텍스트 생성
-        round_text = f'{(env.turn + 1) // 2} moves'
+        round_text = f'{(env.turn + 1)} moves'
         turn_text = ''
         add_text = ''
 
@@ -207,13 +265,13 @@ class GameRenderer:
         image_path = os.path.join(self.base_path, '..', 'assets', 'images')
         try:
             images = {
-                'board': pygame.image.load(os.path.join(image_path, 'board_image.jpg')),
-                'red_king': pygame.image.load(os.path.join(image_path, 'RED_KING.jpg')),
-                'green_king': pygame.image.load(os.path.join(image_path, 'GREEN_KING.jpg')),
-                'ja': pygame.image.load(os.path.join(image_path, 'JA.jpg')),
-                'sang': pygame.image.load(os.path.join(image_path, 'SANG.jpg')),
-                'jang': pygame.image.load(os.path.join(image_path, 'JANG.jpg')),
-                'hu': pygame.image.load(os.path.join(image_path, 'HU.jpg'))
+                'board': pygame.image.load(os.path.join(image_path, 'board_image.jpg')).convert_alpha(),
+                'red_king': pygame.image.load(os.path.join(image_path, 'RED_KING.jpg')).convert_alpha(),
+                'green_king': pygame.image.load(os.path.join(image_path, 'GREEN_KING.jpg')).convert_alpha(),
+                'ja': pygame.image.load(os.path.join(image_path, 'JA.jpg')).convert_alpha(),
+                'sang': pygame.image.load(os.path.join(image_path, 'SANG.jpg')).convert_alpha(),
+                'jang': pygame.image.load(os.path.join(image_path, 'JANG.jpg')).convert_alpha(),
+                'hu': pygame.image.load(os.path.join(image_path, 'HU.jpg')).convert_alpha()
             }
 
         except pygame.error as e:
@@ -251,6 +309,25 @@ class GameRenderer:
             (-1, Piece.SANG): pygame.transform.smoothscale(pygame.transform.rotate(images["sang"], 180), (self.TAKEN_PIECE_SIZE, self.TAKEN_PIECE_SIZE)),
             (-1, Piece.JANG): pygame.transform.smoothscale(pygame.transform.rotate(images["jang"], 180), (self.TAKEN_PIECE_SIZE, self.TAKEN_PIECE_SIZE))
         }
+
+        self.hint_piece_image = {
+            (1, Piece.KING): pygame.transform.smoothscale(images["red_king"], (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (1, Piece.JA): pygame.transform.smoothscale(images["ja"], (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (1, Piece.SANG): pygame.transform.smoothscale(images["sang"], (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (1, Piece.JANG): pygame.transform.smoothscale(images["jang"], (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (1, Piece.HU): pygame.transform.smoothscale(images["hu"], (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (-1, Piece.KING): pygame.transform.smoothscale(pygame.transform.rotate(images["green_king"], 180), (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (-1, Piece.JA): pygame.transform.smoothscale(pygame.transform.rotate(images["ja"], 180), (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (-1, Piece.SANG): pygame.transform.smoothscale(pygame.transform.rotate(images["sang"], 180), (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (-1, Piece.JANG): pygame.transform.smoothscale(pygame.transform.rotate(images["jang"], 180), (self.PIECE_SIZE, self.PIECE_SIZE)),
+            (-1, Piece.HU): pygame.transform.smoothscale(pygame.transform.rotate(images["hu"], 180), (self.PIECE_SIZE, self.PIECE_SIZE))
+        }
+
+        for image in self.hint_piece_image.values():
+            image.set_alpha(80)
+
+        self.hint_surface = pygame.Surface((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.SRCALPHA)
+        self.hint_surface.set_alpha(230)
 
     def _load_fonts(self):
         font_path = os.path.join(self.base_path, '..', 'assets', 'fonts')
@@ -319,6 +396,16 @@ class GameRenderer:
             -1: pygame.Rect(self.TAKEN_BOARD_POS[-1][0], self.TAKEN_BOARD_POS[-1][1], self.TAKEN_BOARD_WIDTH, self.TAKEN_BOARD_HEIGHT)
         }
 
+    def _draw_win_rate_ui(self, win_rate):
+        if win_rate is None:
+            return
+        
+        diff = win_rate - self.display_win_rate
+        self.display_win_rate += diff * 0.04
+
+        pygame.draw.rect(self.screen, self.TEAM_COLOR[1], (self.BAR_X, self.BAR_Y, self.BAR_WIDTH, self.BAR_HEIGHT))
+        fill_height = int(self.BAR_HEIGHT * self.display_win_rate)
+        pygame.draw.rect(self.screen, self.TEAM_COLOR[-1], (self.BAR_X, self.BAR_Y, self.BAR_WIDTH, fill_height))
         
     def _create_smooth_circle(self, radius, width, color):
         scale_multiple = 4
