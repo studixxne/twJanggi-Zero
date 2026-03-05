@@ -76,3 +76,17 @@ def move_to_action(move):
         action = 96 + ((piece_type-1) * 12 + pos)
 
         return action
+    
+def action_to_text(action):
+    if action < 96:
+        move = action_to_move(action)
+        return (f"({4-move[0]}, {chr(ord('a') + int(move[1]))}) to ({4-move[2]}, {chr(ord('a') + int(move[3]))})")
+        
+    else:
+        move = action_to_move(action)
+        if move[1] == 1:
+            return f"자 ({4-move[2]}, {chr(ord('a') + int(move[3]))}) 배치"
+        if move[1] == 2:
+            return f"상 ({4-move[2]}, {chr(ord('a') + int(move[3]))}) 배치"
+        if move[1] == 3:
+            return f"장 ({4-move[2]}, {chr(ord('a') + int(move[3]))}) 배치"
