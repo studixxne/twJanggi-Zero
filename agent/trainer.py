@@ -91,7 +91,7 @@ class SelfPlay:
         w1, w2, draw = results.count(1), results.count(-1), results.count(0)
         print(f'=========== Self Playing Results ===========')
         print(f'Red: {w1} Win | Green: {w2} Win | Draw: {draw}')
-        print(f'Red Win Rate: {w1/(num_play-draw)*100:.1f}% | Green Win Rate: {w2/(num_play-draw)*100:.1f}% | Draw {draw/num_play*100:.1f}%')
+        print(f'Red Win Rate: {w1/(num_play-draw+1e-6)*100:.1f}% | Green Win Rate: {w2/(num_play-draw+1e-6)*100:.1f}% | Draw {draw/num_play*100+1e-6:.1f}%')
         print("=" * 44)
 
 class LossFunc(nn.Module):
@@ -106,7 +106,7 @@ class LossFunc(nn.Module):
         return loss
     
 class Trainer:
-    def __init__(self, num_play=30, num_traversal=1000, T=4, hidden_ch=128, num_block=4, c_puct=2, alpha=0.6, epsilon=0.25, batch_size=128, c=1e-4):
+    def __init__(self, num_play=100, num_traversal=1000, T=4, hidden_ch=128, num_block=4, c_puct=2, alpha=0.6, epsilon=0.25, batch_size=128, c=1e-4, lr=1e-3):
         self.num_play = num_play
         self.num_traversal = num_traversal
         self.T = T
@@ -117,19 +117,19 @@ class Trainer:
         self.epsilon = epsilon
         self.batch_size = batch_size
         self.c = c
+        self.lr = lr
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.mps.is_available() else 'cpu')
         self.encoder = TwJanggiEncoder(self.T)
         self.network = TwJanggiNet(self.T*21+2, self.hidden_ch, self.num_block).to(self.device)
         self.player = SelfPlay(self.T, self.encoder, self.network)
-        self.dataset = deque(maxlen=15000)
+        self.dataset = deque(maxlen=100000)
 
-        self.optimizer = Adam(self.network.parameters(), weight_decay=self.c)
+        self.optimizer = Adam(self.network.parameters(), lr=self.lr, weight_decay=self.c)
         self.loss_fn = LossFunc()
 
     def train(self, iter, load_model=None):
         loss_history = []
-
         if load_model is not None:
             try:
                 state_dict = torch.load(load_model)

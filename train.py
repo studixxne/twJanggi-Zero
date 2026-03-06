@@ -23,6 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=128, help='batch size')
     parser.add_argument('--c', type=float, default=1e-4, help='weight decay')
     parser.add_argument('--load_model', type=str, default=None, help='load_model path')
+    parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
 
     args = parser.parse_args()
 
@@ -43,7 +44,8 @@ if __name__ == '__main__':
         alpha=args.alpha,
         epsilon=args.epsilon,
         batch_size=args.batch_size,
-        c=args.c
+        c=args.c,
+        lr=args.lr
     )
 
     trainer.train(iter=args.iter, load_model=args.load_model)
