@@ -18,7 +18,12 @@ class Arena:
 
         while True:
             history = self.game.get_state_history(current_agent.encoder)
-            action, win_rate = current_agent.get_best_action(self.game.env, history, mode='arena', num_traversal=self.num_traversal)
+
+            if current_agent.is_pure:
+                action = current_agent.get_pure_mcts_action(self.game.env, self.num_traversal)
+            else:
+                action, win_rate = current_agent.get_best_action(self.game.env, history, mode='arena', num_traversal=self.num_traversal)
+
             self.game.step(action)
             self.agent1.step(action)
             self.agent2.step(action)
@@ -74,8 +79,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="TwJanggi Arena (Model Performance Test)")
 
-    parser.add_argument('--model1', type=str, required=True, help='Agent1 Model path ex) model/model1.pth')
-    parser.add_argument('--model2', type=str, required=True, help='Agent2 Model path ex) model/model2.pth')
+    parser.add_argument('--model1', type=str, default=None, help='Agent1 Model path ex) model/model1.pth, if model1 is None then PureMCTS')
+    parser.add_argument('--model2', type=str, default=None, help='Agent2 Model path ex) model/model2.pth, if model2 is None then PureMCTS')
 
     parser.add_argument('--num_games', type=int, default=30, help='total games')
     parser.add_argument('--num_traversal', type=int, default=1000, help='MCTS traversal num')
@@ -92,15 +97,13 @@ if __name__ == '__main__':
 
     encoder1 = TwJanggiEncoder(args.T1)
     network1 = TwJanggiNet(args.T1*21+2, args.hidden_ch1, args.num_block1)
+    agent1 = Agent(encoder1, network1, model_path=args.model1)
 
     encoder2 = TwJanggiEncoder(args.T2)
     network2 = TwJanggiNet(args.T2*21+2, args.hidden_ch2, args.num_block2)
-
-    agent1 = Agent(encoder1, network1, model_path=args.model1)
     agent2 = Agent(encoder2, network2, model_path=args.model2)
     
     game = TwJanggiGame(mode='arena')
     arena = Arena(agent1, agent2, game, num_traversal=args.num_traversal)
 
     arena.run(args.num_games)
-
