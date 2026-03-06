@@ -1,12 +1,14 @@
 import torch
 import numpy as np
 from agent.mcts import MCTS
+from agent.pure_mcts import PureMCTS
 
 class Agent:
     def __init__(self, encoder, network, model_path=None):
         self.encoder = encoder
         self.network = network
         self.mcts = MCTS(self.encoder, self.network, self.encoder.T)
+        self.is_pure = True if model_path is None else False
 
         if model_path is not None:
             self.network.load_state_dict(torch.load(model_path, weights_only=True))
@@ -38,12 +40,17 @@ class Agent:
             return best_actions, win_rates
 
         elif mode == 'arena':
-            temperature = 1 if env.turn < 6 else 0
+            temperature = 1 if env.turn <= 4 else 0
             pi = self.mcts.get_pi(env, history, alpha=0, epsilon=0, temperature=temperature, num_traversal=num_traversal)
             best_action = np.random.choice(len(pi), p=pi)
             win_rate = (self.mcts.root.Q[best_action] + 1.0) / 2.0
 
         return best_action, win_rate
+    
+    def get_pure_mcts_action(self, env, num_simulations):
+        mcts = PureMCTS(env)
+        action = mcts.get_action(num_simulations=num_simulations)
+        return action
 
     # 플레이어가 수를 두었을 때 Step으로 해당 Action의 노드로 넘어감
     def step(self, action):
