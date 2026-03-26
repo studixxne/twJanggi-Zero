@@ -1,0 +1,3 @@
+numpy >= 2.4.3
+pygame >= 2.6.1
+torch >= 2.9.1
