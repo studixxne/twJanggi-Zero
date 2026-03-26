@@ -24,6 +24,9 @@ The model performance was evaluated by calculating the win rate against Pure MCT
 #### Installation
 
 ``` bash
+git clone https://github.com/studixxne/twJanggi-Zero.git
+cd twJanggi-Zero
+
 pip install -r requirements.txt
 ```
 
