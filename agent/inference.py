@@ -10,8 +10,19 @@ class Agent:
         self.mcts = MCTS(self.encoder, self.network, self.encoder.T)
         self.is_pure = True if model_path is None else False
 
+        def get_device():
+            if torch.cuda.is_available():
+                return torch.device('cuda')
+        
+            elif torch.backends.mps.is_available():
+                return torch.device('mps')
+            
+            return torch.device('cpu')
+
+        device = get_device()
+
         if model_path is not None:
-            self.network.load_state_dict(torch.load(model_path, weights_only=True))
+            self.network.load_state_dict(torch.load(model_path, weights_only=True, map_location=device))
 
         network.eval()
 
