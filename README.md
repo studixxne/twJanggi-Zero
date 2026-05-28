@@ -1,5 +1,6 @@
-# twJanggi-AlphaZero  
-Implementation of `십이장기(Twelve Janggi)` AI using the AlphaZero algorithm based on Self-Play
+# twJanggi-AlphaZero  [![Github Blog](https://img.shields.io/badge/GitHub_Blog-181717?style=flat&logo=github&logoColor=pink)](https://studixxne.github.io/rl/2026/05/28/alphazero.html)
+
+Implementation of `십이장기(Twelve Janggi)` AI using the AlphaZero algorithm based on Self-Play 
 
 [십이장기](https://the-genius-show.fandom.com/wiki/Twelve_Janggi) is a 4\*3 mini-shogi variant derived from [Dobutsu Shogi](https://en.wikipedia.org/wiki/D%C5%8Dbutsu_sh%C5%8Dgi). This project provides an AlphaZero implementation for `십이장기`, including the training process, a pre-trained agent, and a playable GUI with analysis tools.
 
